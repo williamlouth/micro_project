@@ -8,7 +8,8 @@ UART_counter res 1	    ; reserve 1 byte for variable UART_counter
 UART    code
     
 UART_Setup
-    bsf	    RCSTA1, SPEN    ; enable
+    bsf	    RCSTA1, CREN    ;enable reciever
+    bsf	    RCSTA1, SPEN    ; enable serial port
     bcf	    TXSTA1, SYNC    ; synchronous
     bcf	    TXSTA1, BRGH    ; slow speed
     bsf	    TXSTA1, TXEN    ; enable transmit
@@ -16,6 +17,7 @@ UART_Setup
     movlw   .103	    ; gives 9600 Baud rate (actually 9615)
     movwf   SPBRG1
     bsf	    TRISC, TX1	    ; TX1 pin as output
+    bcf	    TRISC, RX1	    ;set rx as input (portC 7)
     return
 
 UART_Transmit_Message	    ; Message stored at FSR2, length stored in W
@@ -28,11 +30,14 @@ UART_Loop_message
     return
 
 UART_Transmit_Byte	    ; Transmits byte stored in W
+
     btfss   PIR1,TX1IF	    ; TX1IF is set when TXREG1 is empty
     bra	    UART_Transmit_Byte
     movwf   TXREG1
     return
 
+UART_Receive_Byte
+    
     end
 
 

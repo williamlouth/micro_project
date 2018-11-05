@@ -1,10 +1,10 @@
 	#include p18f87k22.inc
 
-	extern	UART_Setup, UART_Transmit_Message  ; external subroutines
+	extern	UART_Setup, UART_Transmit_Message,delay,delay_v_long  ; external subroutines
 	
 acs0	udata_acs   ; reserve data space in access ram
 counter	    res 1   ; reserve one byte for a counter variable
-delay_count res 1   ; reserve one byte for counter in the delay routine
+;delay_count res 1   ; reserve one byte for counter in the delay routine
 
 tables	udata	0x400    ; reserve data anywhere in RAM (here at 0x400)
 myArray res 0x80    ; reserve 128 bytes for message data
@@ -39,15 +39,25 @@ loop 	tblrd*+			; one byte from PM to TABLAT, increment TBLPRT
 	decfsz	counter		; count down to zero
 	bra	loop		; keep going until finished
 		
-	movlw	myTable_l	; output message to UART
+test	movlw	myTable_l	; output message to UART
 	lfsr	FSR2, myArray
 	call	UART_Transmit_Message
-
+;	movlw	0xff
+;	movwf	delay_count
+	call	delay
+	
+	;RC1IF
+	
+	movlw	0x0
+	movf	INDF2,w
+	movf    RCREG1,w
+	
+	bra	test
 	goto	$		; goto current line in code
 
 	; a delay subroutine if you need one, times around loop in delay_count
-delay	decfsz	delay_count	; decrement until zero
-	bra delay
-	return
+;delay	decfsz	delay_count	; decrement until zero
+;	bra delay
+;	return
 
 	end
