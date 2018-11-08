@@ -1,14 +1,22 @@
 	#include p18f87k22.inc
 
 	extern	UART_Setup, UART_Transmit_Message,delay,delay_v_long  ; external subroutines
+	extern	UART_Transmit_Byte
 	
-acs0	udata_acs   ; reserve data space in access ram
+acs0	udata_acs  ; reserve data space in access ram
 counter	    res 1   ; reserve one byte for a counter variable
+
+;myArray res 0x80
 ;delay_count res 1   ; reserve one byte for counter in the delay routine
 
 tables	udata	0x400    ; reserve data anywhere in RAM (here at 0x400)
-myArray res 0x80    ; reserve 128 bytes for message data
-
+myArray res 0xF    ; reserve 128 bytes for message data
+ 
+new_group udata 0x500
+data_test   res 1
+received    res 0xF
+counter2    res 1
+ 
 rst	code	0    ; reset vector
 	goto	setup
 
@@ -22,8 +30,8 @@ main	code
 setup	bcf	EECON1, CFGS	; point to Flash program memory  
 	bsf	EECON1, EEPGD 	; access Flash program memory
 	call	UART_Setup	; setup UART
-	goto	start
-	
+	goto start2
+
 	; ******* Main programme ****************************************
 start 	lfsr	FSR0, myArray	; Load FSR0 with address in RAM	
 	movlw	upper(myTable)	; address of data in PM
@@ -38,7 +46,9 @@ loop 	tblrd*+			; one byte from PM to TABLAT, increment TBLPRT
 	movff	TABLAT, POSTINC0; move data from TABLAT to (FSR0), inc FSR0	
 	decfsz	counter		; count down to zero
 	bra	loop		; keep going until finished
-		
+	
+	goto	test_rif
+	
 test	movlw	myTable_l	; output message to UART
 	lfsr	FSR2, myArray
 	call	UART_Transmit_Message
@@ -54,6 +64,49 @@ test	movlw	myTable_l	; output message to UART
 	
 	bra	test
 	goto	$		; goto current line in code
+
+test_rif   
+		
+	lfsr	FSR1, received
+	movlw	myTable_l	; bytes to read
+	movwf 	counter2	; our counter register
+	;movlw	myTable_l	; output message to UART
+	lfsr	FSR2, myArray
+send_loop
+	movf	POSTINC2,w
+	call	UART_Transmit_Byte
+	call	delay
+
+	movf    RCREG1,w
+	movwf	POSTINC1
+	decfsz	counter2
+	bra	send_loop
+	goto	$		
+	
+start2
+	lfsr	FSR2, data_test
+	movlw	0x69
+	movwf	INDF2
+	
+	movlw	0x1
+	;movf	INDF2,w ;;;;
+	call	UART_Transmit_Message ;;;;;
+
+	
+	;call	UART_Transmit_Byte
+	;movwf   TXREG1
+	call	delay
+	
+	movlw	0x0
+	movf	INDF2,w
+	movlw   0x0
+	movf	RCREG1,w
+	call	delay
+	bra	start2
+	
+	
+	
+	
 
 	; a delay subroutine if you need one, times around loop in delay_count
 ;delay	decfsz	delay_count	; decrement until zero
