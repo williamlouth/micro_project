@@ -34,6 +34,9 @@ setup	bcf	EECON1, CFGS	; point to Flash program memory
 	; ******* Setting up handshake **********************************
 	movlw	b'00000010'
 	movwf	TRISD		;sets portd pin1 to input
+	bsf PORTD,0
+	
+		
 	goto start2
 
 	; ******* Main programme ****************************************
@@ -90,11 +93,18 @@ send_loop
 start2
 	lfsr	FSR2, data_test
 	
-	movlw	0x57
+	movlw	0x50
 	movwf	consec_dig_counter
+	call	delay
+	call	delay
+	call	delay
+
+	
+
 	
 consec_loop
-	movff	consec_dig_counter,INDF2
+	movf	consec_dig_counter,w
+	movwf	INDF2
 	movlw	0x1
 	call	UART_Transmit_Message
 	decfsz	consec_dig_counter
@@ -126,24 +136,52 @@ consec_loop
 	
 	;call	UART_Transmit_Byte
 	;movwf   TXREG1
-	call	delay
+	
+	
+	;call	delay
 	
 	movlw	0x0
 	movf	INDF2,w
 	movlw   0x0
 	;movlw
 	
-	bsf PORTD,0
-	movf	RCREG1,w
-	bcf PORTD,0
+	;bsf PORTD,0
+	;movf	RCREG1,w
+	;bcf PORTD,0
 	
-	bsf PORTD,0
-	bcf PORTD,0
-	movf	RCREG1,w
+	;bsf PORTD,0
+	;movf	RCREG1,w
+	;bcf PORTD,0
 	
-	call	delay
+	;bsf PORTD,0
+	;movf	RCREG1,w
+	;bcf PORTD,0
+	
+	;bsf PORTD,0
+	;movf	RCREG1,w
+	;bcf PORTD,0
+	
+	bcf PORTD,0
+	call delay
+	movf	RCREG1,w
+	bsf PORTD,0
+	
+	;bcf PORTD,0
+	;call delay
+	;movf	RCREG1,w
+	;bsf PORTD,0
+	;NOP
+	
+	
+	
+	
+	
+	;goto $
+	;call	delay
 	bra	start2
 	
+
+uart_read
 	
 	
 	
