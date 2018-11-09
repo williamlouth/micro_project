@@ -16,6 +16,7 @@ new_group udata 0x500
 data_test   res 1
 received    res 0xF
 counter2    res 1
+consec_dig_counter res 1
  
 rst	code	0    ; reset vector
 	goto	setup
@@ -30,6 +31,9 @@ main	code
 setup	bcf	EECON1, CFGS	; point to Flash program memory  
 	bsf	EECON1, EEPGD 	; access Flash program memory
 	call	UART_Setup	; setup UART
+	; ******* Setting up handshake **********************************
+	movlw	b'00000010'
+	movwf	TRISD		;sets portd pin1 to input
 	goto start2
 
 	; ******* Main programme ****************************************
@@ -85,12 +89,39 @@ send_loop
 	
 start2
 	lfsr	FSR2, data_test
-	movlw	0x69
-	movwf	INDF2
 	
+	movlw	0x57
+	movwf	consec_dig_counter
+	
+consec_loop
+	movff	consec_dig_counter,INDF2
 	movlw	0x1
+	call	UART_Transmit_Message
+	decfsz	consec_dig_counter
+	bra consec_loop
+	
+	;movlw	0x01
+	;movwf	INDF2
+	
+	;movlw	0x57
 	;movf	INDF2,w ;;;;
-	call	UART_Transmit_Message ;;;;;
+	;call	UART_Transmit_Message ;;;;;
+	
+	;movlw	0x69
+	;movwf	INDF2
+	
+	;movlw	0x1
+	;movf	INDF2,w ;;;;
+	;call	UART_Transmit_Message ;;;;;
+	
+	
+	
+	;movlw	0x2
+	;movwf	INDF2
+	
+	;movlw	0x57
+	;movf	INDF2,w ;;;;
+	;call	UART_Transmit_Message ;;;;;
 
 	
 	;call	UART_Transmit_Byte
@@ -100,7 +131,16 @@ start2
 	movlw	0x0
 	movf	INDF2,w
 	movlw   0x0
+	;movlw
+	
+	bsf PORTD,0
 	movf	RCREG1,w
+	bcf PORTD,0
+	
+	bsf PORTD,0
+	bcf PORTD,0
+	movf	RCREG1,w
+	
 	call	delay
 	bra	start2
 	
