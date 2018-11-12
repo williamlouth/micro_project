@@ -1,10 +1,14 @@
-	#include p18f87k22.inc
+#include p18f87k22.inc
 
-	extern	UART_Setup, UART_Transmit_Message,delay,delay_v_long  ; external subroutines
-	extern	UART_Transmit_Byte
+	extern	delay,delay_v_long  ; external subroutines
+	extern	UART_Setup, UART_Transmit_Message,UART_Transmit_Byte
+	extern	LCD_Setup, LCD_Write_Message, LCD_clear,LCD_Send_Byte_D,LCD_Write_Hex
+	extern	transceiver_setup,received
 	
 acs0	udata_acs  ; reserve data space in access ram
 counter	    res 1   ; reserve one byte for a counter variable
+consec_dig_counter res 1
+	constant   size_of_data = .8
 
 ;myArray res 0x80
 ;delay_count res 1   ; reserve one byte for counter in the delay routine
@@ -12,12 +16,11 @@ counter	    res 1   ; reserve one byte for a counter variable
 tables	udata	0x400    ; reserve data anywhere in RAM (here at 0x400)
 myArray res 0xF    ; reserve 128 bytes for message data
  
-new_group udata 0x500
+new_group udata 0x300
 data_test   res 1
-received    res 0x45	    ;stores the data that is sent in on the Uart
+
 counter2    res 1
-consec_dig_counter res 1
-	constant   size_of_data = .50
+
 
  
 rst	code	0    ; reset vector
@@ -33,26 +36,16 @@ int_hi	code 0x0008	    ;high interup code
 	
 pdata	code    ; a section of programme memory for storing data
 	; ******* myTable, data in programme memory, and its length *****
-myTable data	    "Send nudes\n"	; message, plus carriage return
-	constant    myTable_l=.11	; length of data
+myTable data	    "Will and Rifkat\n"	; message, plus carriage return
+	constant    myTable_l=.16	; length of data
 	
 main	code
 	; ******* Programme FLASH read Setup Code ***********************
 setup	bcf	EECON1, CFGS	; point to Flash program memory  
 	bsf	EECON1, EEPGD 	; access Flash program memory
 	call	UART_Setup	; setup UART
-	; ******* Setting up handshake **********************************
-	movlw	b'00000010'
-	movwf	TRISD		;sets portd pin1 to input
-	bsf PORTD,0
-	
-	bsf	RCON,IPEN	    ;enables different levels of interupts
-	bsf	INTCON,PEIE	    ;enables peripheral interupts
-	bsf	INTCON,GIE	    ;enables global interupts
-	bsf	PIE1,RC1IE     ;enables the RC1IF interupt
-	lfsr	FSR1, received	;setup the fsr so that if there is any uart data it is stored correctly
-		
-	
+	call	LCD_Setup	;setup the LCD
+	call	transceiver_setup
 	
 	goto start2
 
@@ -71,41 +64,9 @@ loop 	tblrd*+			; one byte from PM to TABLAT, increment TBLPRT
 	decfsz	counter		; count down to zero
 	bra	loop		; keep going until finished
 	
-	goto	test_rif
+	goto	start2
 	
-test	movlw	myTable_l	; output message to UART
-	lfsr	FSR2, myArray
-	call	UART_Transmit_Message
-;	movlw	0xff
-;	movwf	delay_count
-	call	delay
-	
-	;RC1IF
-	
-	movlw	0x0
-	movf	INDF2,w
-	movf    RCREG1,w
-	
-	bra	test
-	goto	$		; goto current line in code
-
-test_rif   
 		
-	lfsr	FSR1, received
-	movlw	myTable_l	; bytes to read
-	movwf 	counter2	; our counter register
-	;movlw	myTable_l	; output message to UART
-	lfsr	FSR2, myArray
-send_loop
-	movf	POSTINC2,w
-	call	UART_Transmit_Byte
-	call	delay
-
-	movf    RCREG1,w
-	movwf	POSTINC1
-	decfsz	counter2
-	bra	send_loop
-	goto	$		
 	
 start2
 	lfsr	FSR2, data_test
@@ -116,7 +77,6 @@ start2
 	call	delay
 	call	delay
 
-	
 
 	
 consec_loop
@@ -142,11 +102,19 @@ consec_loop
 	call delay
 	bsf PORTD,0
 	
+
 	lfsr	FSR1,received		;point fsr1 to start of uart data table
-	movlw	size_of_data
+	movlw	.5
 	movwf	consec_dig_counter	;keep track of length of data
+	call	LCD_clear
 read_loop
 	movf	POSTINC1,w		;read data in table to working to check
+	
+	call	LCD_Write_Hex
+	;lfsr	FSR2,received
+	;movlw	size_of_data
+	;call	LCD_Write_Message
+	
 	decfsz	consec_dig_counter
 	bra read_loop
 
