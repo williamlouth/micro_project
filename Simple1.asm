@@ -14,13 +14,23 @@ myArray res 0xF    ; reserve 128 bytes for message data
  
 new_group udata 0x500
 data_test   res 1
-received    res 0xF
+received    res 0x45	    ;stores the data that is sent in on the Uart
 counter2    res 1
 consec_dig_counter res 1
+	constant   size_of_data = .50
+
  
 rst	code	0    ; reset vector
 	goto	setup
 
+int_hi	code 0x0008	    ;high interup code
+	btfss	PIE1,RC1IE  ;checking that this is the RC1IF interup(uart read)
+	retfie	FAST	    ;return if not
+	movff	RCREG1,POSTINC1
+	retfie	FAST	    ;return
+	
+	
+	
 pdata	code    ; a section of programme memory for storing data
 	; ******* myTable, data in programme memory, and its length *****
 myTable data	    "Send nudes\n"	; message, plus carriage return
@@ -36,7 +46,14 @@ setup	bcf	EECON1, CFGS	; point to Flash program memory
 	movwf	TRISD		;sets portd pin1 to input
 	bsf PORTD,0
 	
+	bsf	RCON,IPEN	    ;enables different levels of interupts
+	bsf	INTCON,PEIE	    ;enables peripheral interupts
+	bsf	INTCON,GIE	    ;enables global interupts
+	bsf	PIE1,RC1IE     ;enables the RC1IF interupt
+	lfsr	FSR1, received	;setup the fsr so that if there is any uart data it is stored correctly
 		
+	
+	
 	goto start2
 
 	; ******* Main programme ****************************************
@@ -93,7 +110,7 @@ send_loop
 start2
 	lfsr	FSR2, data_test
 	
-	movlw	0x50
+	movlw	size_of_data
 	movwf	consec_dig_counter
 	call	delay
 	call	delay
@@ -108,76 +125,31 @@ consec_loop
 	movlw	0x1
 	call	UART_Transmit_Message
 	decfsz	consec_dig_counter
-	bra consec_loop
-	
-	;movlw	0x01
-	;movwf	INDF2
-	
-	;movlw	0x57
-	;movf	INDF2,w ;;;;
-	;call	UART_Transmit_Message ;;;;;
-	
-	;movlw	0x69
-	;movwf	INDF2
-	
-	;movlw	0x1
-	;movf	INDF2,w ;;;;
-	;call	UART_Transmit_Message ;;;;;
+	bra consec_loop	    ;this block sends a bunch of data
 	
 	
-	
-	;movlw	0x2
-	;movwf	INDF2
-	
-	;movlw	0x57
-	;movf	INDF2,w ;;;;
-	;call	UART_Transmit_Message ;;;;;
-
-	
-	;call	UART_Transmit_Byte
-	;movwf   TXREG1
+	;movlw	0x0
+	;movf	INDF2,w
+	;movlw   0x0
 	
 	
-	;call	delay
-	
-	movlw	0x0
-	movf	INDF2,w
-	movlw   0x0
-	;movlw
-	
-	;bsf PORTD,0
-	;movf	RCREG1,w
-	;bcf PORTD,0
-	
-	;bsf PORTD,0
-	;movf	RCREG1,w
-	;bcf PORTD,0
-	
-	;bsf PORTD,0
-	;movf	RCREG1,w
-	;bcf PORTD,0
-	
-	;bsf PORTD,0
-	;movf	RCREG1,w
-	;bcf PORTD,0
-	
-	bcf PORTD,0
 	call delay
-	movf	RCREG1,w
+	
+	lfsr	FSR1,received
+	bcf PORTD,0	;pulse to reciever to get it to send its buffered data
+	call delay
+	call delay
+	call delay
 	bsf PORTD,0
 	
-	;bcf PORTD,0
-	;call delay
-	;movf	RCREG1,w
-	;bsf PORTD,0
-	;NOP
-	
-	
-	
-	
-	
-	;goto $
-	;call	delay
+	lfsr	FSR1,received		;point fsr1 to start of uart data table
+	movlw	size_of_data
+	movwf	consec_dig_counter	;keep track of length of data
+read_loop
+	movf	POSTINC1,w		;read data in table to working to check
+	decfsz	consec_dig_counter
+	bra read_loop
+
 	bra	start2
 	
 
