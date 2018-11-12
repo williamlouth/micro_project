@@ -96,20 +96,22 @@ consec_loop
 	call delay
 	
 	lfsr	FSR1,received
-	bcf PORTD,0	;pulse to reciever to get it to send its buffered data
-	call delay
-	call delay
-	call delay
-	bsf PORTD,0
+	bcf	PORTD,0	;pulse to reciever to get it to send its buffered data
+	call	delay
+	call	delay
+	call	delay
+	bsf	PORTD,0
 	
-
+	call	delay
+	call	delay
+	call	delay
+	
 	lfsr	FSR1,received		;point fsr1 to start of uart data table
-	movlw	.5
+	movlw	.8
 	movwf	consec_dig_counter	;keep track of length of data
 	call	LCD_clear
 read_loop
 	movf	POSTINC1,w		;read data in table to working to check
-	
 	call	LCD_Write_Hex
 	;lfsr	FSR2,received
 	;movlw	size_of_data
@@ -120,15 +122,5 @@ read_loop
 
 	bra	start2
 	
-
-uart_read
-	
-	
-	
-
-	; a delay subroutine if you need one, times around loop in delay_count
-;delay	decfsz	delay_count	; decrement until zero
-;	bra delay
-;	return
 
 	end
