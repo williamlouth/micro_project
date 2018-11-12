@@ -84,6 +84,7 @@ consec_loop
 	movwf	INDF2
 	movlw	0x1
 	call	UART_Transmit_Message
+	call	delay
 	decfsz	consec_dig_counter
 	bra consec_loop	    ;this block sends a bunch of data
 	
@@ -118,7 +119,7 @@ read_loop
 	;call	LCD_Write_Message
 	
 	decfsz	consec_dig_counter
-	bra read_loop
+	bra	read_loop
 
 	bra	start2
 	
