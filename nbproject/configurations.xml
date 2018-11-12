@@ -18,6 +18,8 @@
       <itemPath>delay.asm</itemPath>
       <itemPath>LCD.asm</itemPath>
       <itemPath>transceiver.asm</itemPath>
+      <itemPath>key_pad.asm</itemPath>
+      <itemPath>table_read.asm</itemPath>
     </logicalFolder>
     <logicalFolder name="ExternalFiles"
                    displayName="Important Files"

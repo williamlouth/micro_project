@@ -1,6 +1,7 @@
 #include p18f87k22.inc
 
     global  UART_Setup, UART_Transmit_Message,UART_Transmit_Byte
+    extern  delay
 
 acs0    udata_acs	    ; named variables in access ram
 UART_counter res 1	    ; reserve 1 byte for variable UART_counter
@@ -24,9 +25,10 @@ UART_Setup
 UART_Transmit_Message	    ; Message stored at FSR2, length stored in W
     movwf   UART_counter
 UART_Loop_message
-    ;movf    POSTINC2, W  ;source from Mark
-    movf    INDF2, W	 ;sends one character
+    movf    POSTINC2, W  ;source from Mark
+    ;movf    INDF2, W	 ;sends one character
     call    UART_Transmit_Byte
+    ;call    delay	    ;this shouldnt be required. But it stops some stuttering on the LCD
     decfsz  UART_counter
     bra	    UART_Loop_message
     return
