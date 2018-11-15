@@ -1,38 +1,27 @@
 #include p18f87k22.inc
 
-	extern	delay,delay_v_long  ; external subroutines
+	extern	delay  ; external subroutines
 	extern	UART_Setup, UART_Transmit_Message,UART_Transmit_Byte
 	extern	LCD_Setup, LCD_Write_Message, LCD_clear,LCD_Send_Byte_D,LCD_Write_Hex
 	extern	transceiver_setup,received
 	extern	key_pad_start,key_pad_setup
 	
 acs0	udata_acs  ; reserve data space in access ram
-counter	    res 1   ; reserve one byte for a counter variable
-consec_dig_counter res 1
-data_length res 1
-	constant   size_of_data = .8
-
-;myArray res 0x80
-;delay_count res 1   ; reserve one byte for counter in the delay routine
+counter	    res 1   ; reserve byte for a counter variable for table read fn
+data_length res 1   ;stores length of data from key_pad
+	
 
 tables	udata	0x400    ; reserve data anywhere in RAM (here at 0x400)
-myArray res 0x12    ; reserve 128 bytes for message data
+myArray res	0x12    ; reserve 0x12 bytes for message data in ram
  
-new_group udata 0x300
-data_test   res 1
-array_test  res 0x20
-
-counter2    res 1
-
-
  
 rst	code	0    ; reset vector
 	goto	setup
 
 int_hi	code 0x0008	    ;high interup code
-	btfss	PIE1,RC1IE  ;checking that this is the RC1IF interup(uart read)
+	btfss	PIR1,RC1IF  ;checking that this is the RC1IF interup(uart read)
 	retfie	FAST	    ;return if not
-	movff	RCREG1,POSTINC1
+	movff	RCREG1,POSTINC1	;reading RCREG1 set rc1if low
 	retfie	FAST	    ;return
 	
 	
@@ -48,8 +37,8 @@ setup	bcf	EECON1, CFGS	; point to Flash program memory
 	bsf	EECON1, EEPGD 	; access Flash program memory
 	call	UART_Setup	; setup UART
 	call	LCD_Setup	;setup the LCD
-	call	transceiver_setup
-	call	key_pad_setup
+	call	transceiver_setup   ;setup transceiver
+	call	key_pad_setup	    ;setup key_pad
 	
 	goto start
 
@@ -73,57 +62,12 @@ loop 	tblrd*+			; one byte from PM to TABLAT, increment TBLPRT
 		
 	
 start2
-	;lfsr	FSR2, myArray
+	call	key_pad_start    ;this hangs in key_pad until send(A) is pressed
+	movwf	data_length	 ;store the length for later use
+	;movf	data_length,w    ;dont fiddle with the w reg before Uart_transmit_message
 	
-	;movlw	size_of_data
-;	movlw	myTable_l
-	
-;	movwf	consec_dig_counter
-		
-	
-;	call	delay
-;	call	delay
-	call	key_pad_start
-	movwf	data_length
-	movf	data_length,w
-	;call	delay
-
-
-	
-consec_loop
-	;lfsr FSR2, array_test
-	;movlw 0x23
-	;movwf POSTINC2
-	;movlw 0x24
-	;movwf POSTINC2
-	;movlw 0x25
-	;movwf POSTINC2
-	;lfsr FSR2, array_test
-	;movlw	0x3
-	
-	;movf	consec_dig_counter,w
-	;movwf	INDF2
-	;movlw	0x1
-	;call	UART_Transmit_Message
-	;call	delay
-	;decfsz	consec_dig_counter
-	;bra consec_loop	    ;this block sends a bunch of data
-	
-	;movlw	myTable_l
-	;lfsr	FSR2, myArray
-	;call	UART_Transmit_Message
-	
-	;movlw	myTable_l
-	;lfsr	FSR2, myArray
-	call	UART_Transmit_Message
-	
-	
-	
-	;movlw	0x0
-	;movf	INDF2,w
-	;movlw   0x0
-	
-	
+	call	UART_Transmit_Message   ;send the message, fsr2 point at start of message, wreg = length
+			
 	call delay
 	
 	lfsr	FSR1,received
@@ -134,39 +78,27 @@ consec_loop
 	call	delay
 	call	delay
 	call	delay
+	call	delay	;need to wait long enough with portd,0 low to recieve all the data
 	call	delay
 	call	delay
 	call	delay
 	call	delay
-	call	delay
-	bsf	PORTD,0
+	bsf	PORTD,0	;end pulse
 	
 	call	delay
-	call	delay
+	call	delay	;allow some time for uart to finiish
 	call	delay
 	
-	lfsr	FSR1,received		;point fsr1 to start of uart data table
-	;movf	data_length,w
-	;movlw	myTable_l
-	;movwf	consec_dig_counter	;keep track of length of data
-	call	LCD_clear
-read_loop
-	;movlw	myTable_l
-	;movlw 0x3
+	
+	
+	call	LCD_clear		;wipe the LCD
 	movf	data_length,w
 	lfsr	FSR2, received
-	call	LCD_Write_Message
+	call	LCD_Write_Message   ;needs message to write in fsr2 and length in w
 	call	delay
 	
-	;movf	POSTINC1,w		;read data in table to working to check
-	;call	LCD_Write_Hex
-	;lfsr	FSR2,received
-	;movlw	size_of_data
-	;call	LCD_Write_Message
+	lfsr	FSR1,received	;reset the recieved pointer so that new data goes to the right place
 	
-	;decfsz	consec_dig_counter
-	;bra	read_loop
-
 	bra	start2
 	
 

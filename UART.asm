@@ -16,8 +16,8 @@ UART_Setup
     bsf	    TXSTA1, TXEN    ; enable transmit
     bcf	    BAUDCON1, BRG16 ; 8-bit generator only
     ;movlw   .103	    ; gives 9600 Baud rate (actually 9615)
-    movlw   .51	    
-    movwf   SPBRG1
+    movlw   .51		    ;  gives 19200 Baud rate 
+    movwf   SPBRG1	    ; store value into uart control reg
     bsf	    TRISC, TX1	    ; TX1 pin as output
     bcf	    TRISC, RX1	    ;set rx as input (portC 7)
     return
@@ -29,15 +29,15 @@ UART_Loop_message
     ;movf    INDF2, W	 ;sends one character
     call    UART_Transmit_Byte
     ;call    delay	    ;this shouldnt be required. But it stops some stuttering on the LCD
-    decfsz  UART_counter
+    decfsz  UART_counter    ;number of bytes to send is length of message
     bra	    UART_Loop_message
     return
 
 UART_Transmit_Byte	    ; Transmits byte stored in W
 
-    btfss   PIR1,TX1IF	    ; TX1IF is set when TXREG1 is empty
+    btfss   PIR1,TX1IF	    ; TX1IF is set when TXREG1 is empty, hang until ready to send next
     bra	    UART_Transmit_Byte
-    movwf   TXREG1
+    movwf   TXREG1	    ;place next byte in uart output reg
     return
 
 

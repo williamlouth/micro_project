@@ -72,7 +72,7 @@ LCD_Hex_Nib	    ; writes low nibble as hex character
 LCD_Write_Message	    ; Message stored at FSR2, length stored in W
 	movwf   LCD_counter
 LCD_Loop_message
-	movf    POSTINC2, W
+	movf    POSTINC2, W	;stepping through fsr2
 	call    LCD_Send_Byte_D
 	decfsz  LCD_counter
 	bra	LCD_Loop_message
@@ -160,15 +160,15 @@ lcdlp1	decf 	LCD_cnt_l,F	; no carry when 0x00 -> 0xff
 
 	
 LCD_2nd_line
-	movlw	b'11000000'
+	movlw	b'11000000'	    ;this puts a particular instruction to lcd
 	call	LCD_Send_Byte_I
-	movlw   .2
+	movlw   .2		    ;waut 2 ms to move the cursor
 	call	LCD_delay_ms
 	return
 LCD_clear
-	movlw	b'00000001'
-	call	LCD_Send_Byte_I
-	movlw  .2
+	movlw	b'00000001'	    ;clear instruction
+	call	LCD_Send_Byte_I		
+	movlw  .2		    ;wait 2ms
 	call	LCD_delay_ms
 	return
 	
