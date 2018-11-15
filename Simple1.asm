@@ -1,5 +1,6 @@
 #include p18f87k22.inc
 
+	global	lcd_write_interup,recieved_message_flag
 	extern	delay  ; external subroutines
 	extern	UART_Setup, UART_Transmit_Message,UART_Transmit_Byte
 	extern	LCD_Setup, LCD_Write_Message, LCD_clear,LCD_Send_Byte_D,LCD_Write_Hex
@@ -9,6 +10,7 @@
 acs0	udata_acs  ; reserve data space in access ram
 counter	    res 1   ; reserve byte for a counter variable for table read fn
 data_length res 1   ;stores length of data from key_pad
+recieved_message_flag res 1
 	
 
 tables	udata	0x400    ; reserve data anywhere in RAM (here at 0x400)
@@ -21,7 +23,13 @@ rst	code	0    ; reset vector
 int_hi	code 0x0008	    ;high interup code
 	btfss	PIR1,RC1IF  ;checking that this is the RC1IF interup(uart read)
 	retfie	FAST	    ;return if not
-	movff	RCREG1,POSTINC1	;reading RCREG1 set rc1if low
+	movff	RCREG1,INDF1	;reading RCREG1, set rc1if low
+	incf	data_length,f		 ;add 1 to the data_length
+	movlw	0x17
+	CPFSEQ	POSTINC1
+	retfie	FAST	    ;return
+	incf	recieved_message_flag,f  ;set the flag to 1
+	decf	data_length,f		 ;dont want to write the end transmit char
 	retfie	FAST	    ;return
 	
 	
@@ -39,6 +47,10 @@ setup	bcf	EECON1, CFGS	; point to Flash program memory
 	call	LCD_Setup	;setup the LCD
 	call	transceiver_setup   ;setup transceiver
 	call	key_pad_setup	    ;setup key_pad
+	
+	bcf	PORTD,0
+	
+	clrf	recieved_message_flag ;set the flag to 0
 	
 	goto start
 
@@ -68,38 +80,27 @@ start2
 	
 	call	UART_Transmit_Message   ;send the message, fsr2 point at start of message, wreg = length
 			
-	call delay
+	clrf	data_length	    ;set data length back to zero	
+	;call	LCD_clear		;wipe the LCD
+	;movf	data_length,w
+	;lfsr	FSR2, received
+	;call	LCD_Write_Message   ;needs message to write in fsr2 and length in w
+	;call	delay
 	
-	lfsr	FSR1,received
-	bcf	PORTD,0	;pulse to reciever to get it to send its buffered data
-	call	delay
-	call	delay
-	call	delay
-	call	delay
-	call	delay
-	call	delay
-	call	delay	;need to wait long enough with portd,0 low to recieve all the data
-	call	delay
-	call	delay
-	call	delay
-	call	delay
-	bsf	PORTD,0	;end pulse
+	;lfsr	FSR1,received	;reset the recieved pointer so that new data goes to the right place
 	
-	call	delay
-	call	delay	;allow some time for uart to finiish
-	call	delay
+	bra	start2
 	
-	
-	
+lcd_write_interup
+	bsf	PORTD,0			;dont want to be interupted when writing to LCD(timing issues)
 	call	LCD_clear		;wipe the LCD
 	movf	data_length,w
 	lfsr	FSR2, received
 	call	LCD_Write_Message   ;needs message to write in fsr2 and length in w
-	call	delay
-	
 	lfsr	FSR1,received	;reset the recieved pointer so that new data goes to the right place
+	clrf	recieved_message_flag ;set the flag to 0
+	clrf	data_length	    ;set data length back to zero
+	bcf	PORTD,0
+	return 
 	
-	bra	start2
-	
-
 	end

@@ -2,6 +2,7 @@
 	
 	global	key_pad_start,key_pad_setup
 	extern	delay
+	extern	lcd_write_interup,recieved_message_flag ;self interupt for recieved message
     
 	
 key_pad_vars    udata_acs	    ; named variables in access ram
@@ -18,7 +19,8 @@ send_command res 1		    ;store the ascii for A to compare against
 table_data_out_length  res  1	    ;stores the length of the output data table
 zero	res 1			    ;stores 0 to compare against
 invalid_file res 1		    ;stores ascii £ to check for invalid inputs
- 
+temp_fsr2h  res 1
+temp_fsr2l  res 1
 
 key_pad_tables udata 
 myArray1 res 16		    ;first lookup table used to lookup in second table
@@ -95,6 +97,9 @@ key_pad_start
 	movwf	table_data_out_length
 	
 key_pad_run
+	tstfsz	recieved_message_flag	;poll to see if have recieved a message
+	call	do_interupt		;write the recieved message to the lcd
+	
 	movlw b'00001111'    ;set low 4 to inputs, high 4 to outputs 
 	movwf TRISE, ACCESS ;on port E
 	call delay
@@ -106,12 +111,12 @@ key_pad_run
 	movff PORTE, raw_numb_col
 		
 	
- 	movlw 0x00
-	movwf	TRISD
-	movf raw_numb_col,w
-	addwf raw_numb_row,w
-	movwf PORTD,ACCESS
-	call delay
+ 	;movlw 0x00
+	;movwf	TRISD
+	;movf raw_numb_col,w
+	;addwf raw_numb_row,w
+	;movwf PORTD,ACCESS
+	;call delay
 	bra key_pad_decode
 	
 	
@@ -182,19 +187,31 @@ check_send
 	bra	send_data	;send if there is
 	bra	key_pad_run	;loop back to start if not
 send_data
+	movlw	0x17	    ;end of transmittion in ascii
+	movwf	POSTINC2    ;add it to the message
+	incf	table_data_out_length,f	    ;keep track of  data length
 	movf	table_data_out_length,w	    ;put length of data in w reg
 	lfsr	FSR2,table_data_out	    ;point fsr2 at start of data table
 	return				    ;jump out of key_pad code
 	
 store_data
-	movlw	0x3A
-	CPFSLT	table_data_out_length	    ;stops user from filling all of ram
+	movlw	0x39
+	CPFSLT	table_data_out_length	    ;stops user from filling reciever buffer
 	bra	key_pad_run		    ;if they are loop to start		    
 	incf	table_data_out_length,f	    ;increase variable that stores length
 	movff	actual_input,POSTINC2	    ;put value to store onto fsr2 table and move fsr2 on 1
 	call	delay
 	goto key_pad_run
 	
+	
+	
+do_interupt
+	movff	FSR2H,temp_fsr2h	;stores the fsr2 value so that you can
+	movff	FSR2L,temp_fsr2l	;type numbers while recieving messages
+	call lcd_write_interup
+	movff	temp_fsr2h,FSR2H
+	movff	temp_fsr2l,FSR2L
+	return
 	
 ;invalid input
     
