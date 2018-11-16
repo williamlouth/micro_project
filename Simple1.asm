@@ -36,8 +36,8 @@ int_hi	code 0x0008	    ;high interup code
 	
 pdata	code    ; a section of programme memory for storing data
 	; ******* myTable, data in programme memory, and its length *****
-myTable data	    "Data lost\n"	; message, plus carriage return
-	constant    myTable_l=.9	; length of data
+myTable data	    "Data lost",0	; message, plus carriage return
+	constant    myTable_l=.10	; length of data
 	
 main	code
 	; ******* Programme FLASH read Setup Code ***********************
@@ -51,6 +51,9 @@ setup	bcf	EECON1, CFGS	; point to Flash program memory
 	bcf	PORTD,0
 	
 	clrf	recieved_message_flag ;set the flag to 0
+	;movlw	myTable_l
+	;lfsr	FSR2,myArray
+	;call	UART_Transmit_Message   ;needs message to write in fsr2 and length in w
 	
 	goto start
 
@@ -74,12 +77,24 @@ loop 	tblrd*+			; one byte from PM to TABLAT, increment TBLPRT
 		
 	
 start2
-	call	key_pad_start    ;this hangs in key_pad until send(A) is pressed
-	movwf	data_counted_length	 ;store the length for later use
-	call	UART_Transmit_Message   ;send the message, fsr2 point at start of message, wreg = length
-	clrf	data_counted_length	    ;set data length back to zero	
+	;call	key_pad_start    ;this hangs in key_pad until send(A) is pressed
+	;movwf	data_counted_length	 ;store the length for later use
+	;call	UART_Transmit_Message   ;send the message, fsr2 point at start of message, wreg = length
+	;clrf	data_counted_length	    ;set data length back to zero	
 
+	tstfsz	recieved_message_flag	;poll to see if have recieved a message
+	call my_send
+	
+	
 	bra	start2
+	
+
+my_send
+	clrf	recieved_message_flag
+	movlw	myTable_l
+	lfsr	FSR2,myArray
+	call	UART_Transmit_Message   ;needs message to write in fsr2 and length in w
+	return
 	
 lcd_write_interup
 	bsf	PORTD,0			;dont want to be interupted when writing to LCD(timing issues)
