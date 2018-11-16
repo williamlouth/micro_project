@@ -187,9 +187,11 @@ check_send
 	bra	send_data	;send if there is
 	bra	key_pad_run	;loop back to start if not
 send_data
-	movlw	0x17	    ;end of transmittion in ascii
+	movff	table_data_out_length,POSTINC2	;add length of data to the message
+	movlw	0x00	    ;Null in ascii = end of transmission
 	movwf	POSTINC2    ;add it to the message
 	incf	table_data_out_length,f	    ;keep track of  data length
+	incf	table_data_out_length,f	    ;add the length data length
 	movf	table_data_out_length,w	    ;put length of data in w reg
 	lfsr	FSR2,table_data_out	    ;point fsr2 at start of data table
 	return				    ;jump out of key_pad code

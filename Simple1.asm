@@ -9,7 +9,7 @@
 	
 acs0	udata_acs  ; reserve data space in access ram
 counter	    res 1   ; reserve byte for a counter variable for table read fn
-data_length res 1   ;stores length of data from key_pad
+data_counted_length res 1   ;stores length of data from key_pad
 recieved_message_flag res 1
 	
 
@@ -24,20 +24,20 @@ int_hi	code 0x0008	    ;high interup code
 	btfss	PIR1,RC1IF  ;checking that this is the RC1IF interup(uart read)
 	retfie	FAST	    ;return if not
 	movff	RCREG1,INDF1	;reading RCREG1, set rc1if low
-	incf	data_length,f		 ;add 1 to the data_length
-	movlw	0x17
+	incf	data_counted_length,f		 ;add 1 to the data_counted_length
+	movlw	0x00
 	CPFSEQ	POSTINC1
 	retfie	FAST	    ;return
 	incf	recieved_message_flag,f  ;set the flag to 1
-	decf	data_length,f		 ;dont want to write the end transmit char
+	decf	data_counted_length,f		 ;dont want to write the end transmit char
 	retfie	FAST	    ;return
 	
 	
 	
 pdata	code    ; a section of programme memory for storing data
 	; ******* myTable, data in programme memory, and its length *****
-myTable data	    "Will and Rifkat\n"	; message, plus carriage return
-	constant    myTable_l=.15	; length of data
+myTable data	    "Data lost\n"	; message, plus carriage return
+	constant    myTable_l=.9	; length of data
 	
 main	code
 	; ******* Programme FLASH read Setup Code ***********************
@@ -75,32 +75,39 @@ loop 	tblrd*+			; one byte from PM to TABLAT, increment TBLPRT
 	
 start2
 	call	key_pad_start    ;this hangs in key_pad until send(A) is pressed
-	movwf	data_length	 ;store the length for later use
-	;movf	data_length,w    ;dont fiddle with the w reg before Uart_transmit_message
-	
+	movwf	data_counted_length	 ;store the length for later use
 	call	UART_Transmit_Message   ;send the message, fsr2 point at start of message, wreg = length
-			
-	clrf	data_length	    ;set data length back to zero	
-	;call	LCD_clear		;wipe the LCD
-	;movf	data_length,w
-	;lfsr	FSR2, received
-	;call	LCD_Write_Message   ;needs message to write in fsr2 and length in w
-	;call	delay
-	
-	;lfsr	FSR1,received	;reset the recieved pointer so that new data goes to the right place
-	
+	clrf	data_counted_length	    ;set data length back to zero	
+
 	bra	start2
 	
 lcd_write_interup
 	bsf	PORTD,0			;dont want to be interupted when writing to LCD(timing issues)
 	call	LCD_clear		;wipe the LCD
-	movf	data_length,w
+
+	decf	data_counted_length,f	;dont include the data_length byte
+	lfsr	FSR2, received
+	movf	data_counted_length,w
+	movf	PLUSW2,w		;recieved data length value in message
+	CPFSEQ	data_counted_length
+	bra data_error	
+
+	movf	data_counted_length,w
 	lfsr	FSR2, received
 	call	LCD_Write_Message   ;needs message to write in fsr2 and length in w
 	lfsr	FSR1,received	;reset the recieved pointer so that new data goes to the right place
 	clrf	recieved_message_flag ;set the flag to 0
-	clrf	data_length	    ;set data length back to zero
+	clrf	data_counted_length	    ;set data length back to zero
 	bcf	PORTD,0
 	return 
+	
+data_error
+	movlw	myTable_l
+	lfsr	FSR2,myArray
+	call	LCD_Write_Message   ;needs message to write in fsr2 and length in w
+	clrf	recieved_message_flag ;set the flag to 0
+	clrf	data_counted_length	    ;set data length back to zero
+	bcf	PORTD,0
+	return
 	
 	end
