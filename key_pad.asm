@@ -88,9 +88,6 @@ key_pad_reading_tables
 	bra	key_pad_reading_tables
 	return
 	
-	
-	
-	
 key_pad_start
 	lfsr	FSR2,table_data_out ;point fsr2 at the output table data
 	movlw	0x0
@@ -109,14 +106,7 @@ key_pad_run
 	movwf TRISE, ACCESS ;on port E
 	call delay
 	movff PORTE, raw_numb_col
-		
-	
- 	;movlw 0x00
-	;movwf	TRISD
-	;movf raw_numb_col,w
-	;addwf raw_numb_row,w
-	;movwf PORTD,ACCESS
-	;call delay
+
 	bra key_pad_decode
 	
 	
@@ -176,9 +166,7 @@ next4	lfsr	FSR0, myArray1
 	movf	numb_final,W
 	movff	PLUSW0, actual_input	;read actual input out of second lookup table
 	movf	actual_input,w
-	;bra	check_send
-	
-	
+		
 check_send
 	cpfseq	send_command	;check to see if it is the send command(A)
 	bra store_data		;if it isnt store the data
@@ -214,8 +202,7 @@ do_interupt
 	movff	temp_fsr2h,FSR2H
 	movff	temp_fsr2l,FSR2L
 	return
-	
-;invalid input
+
     
     end
     
