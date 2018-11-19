@@ -51,9 +51,9 @@ setup	bcf	EECON1, CFGS	; point to Flash program memory
 	bcf	PORTD,0
 	
 	clrf	recieved_message_flag ;set the flag to 0
-	;movlw	myTable_l
-	;lfsr	FSR2,myArray
-	;call	UART_Transmit_Message   ;needs message to write in fsr2 and length in w
+	movlw	myTable_l
+	lfsr	FSR2,myArray
+	call	UART_Transmit_Message   ;needs message to write in fsr2 and length in w
 	
 	goto start
 
@@ -77,15 +77,8 @@ loop 	tblrd*+			; one byte from PM to TABLAT, increment TBLPRT
 		
 	
 start2
-	;call	key_pad_start    ;this hangs in key_pad until send(A) is pressed
-	;movwf	data_counted_length	 ;store the length for later use
-	;call	UART_Transmit_Message   ;send the message, fsr2 point at start of message, wreg = length
-	;clrf	data_counted_length	    ;set data length back to zero	
-
 	tstfsz	recieved_message_flag	;poll to see if have recieved a message
 	call my_send
-	
-	
 	bra	start2
 	
 

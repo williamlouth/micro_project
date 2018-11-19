@@ -110,13 +110,6 @@ key_pad_run
 	call delay
 	movff PORTE, raw_numb_col
 		
-	
- 	;movlw 0x00
-	;movwf	TRISD
-	;movf raw_numb_col,w
-	;addwf raw_numb_row,w
-	;movwf PORTD,ACCESS
-	;call delay
 	bra key_pad_decode
 	
 	
@@ -176,7 +169,6 @@ next4	lfsr	FSR0, myArray1
 	movf	numb_final,W
 	movff	PLUSW0, actual_input	;read actual input out of second lookup table
 	movf	actual_input,w
-	;bra	check_send
 	
 	
 check_send
@@ -214,9 +206,7 @@ do_interupt
 	movff	temp_fsr2h,FSR2H
 	movff	temp_fsr2l,FSR2L
 	return
-	
-;invalid input
-    
+   
     end
     
     
